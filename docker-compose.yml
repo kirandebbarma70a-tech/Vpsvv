@@ -1,0 +1,15 @@
+# Local test — Render jaisa hi, bas localhost par
+#   docker compose up --build
+#   node client/tunnel.js "ws://127.0.0.1:8080/ws?token=devtoken" 2222
+#   ssh -p 2222 root@127.0.0.1
+services:
+  render-vps:
+    build: .
+    ports:
+      - "8080:8080"
+    environment:
+      SSH_USER: root
+      SSH_PASSWORD: testpass123
+      WS_TOKEN: devtoken
+      MAX_SESSIONS: "10"
+    restart: unless-stopped

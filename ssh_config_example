@@ -1,0 +1,17 @@
+# ~/.ssh/config me paste karo, phir sirf `ssh rvps` chalao
+# (pehle tunnel chalna chahiye: node client/tunnel.js "wss://HOST/ws?token=TOKEN" 2222)
+
+Host rvps
+    HostName 127.0.0.1
+    Port 2222
+    User root
+    # ephemeral container hai, host key har deploy par badalta hai
+    StrictHostKeyChecking no
+    UserKnownHostsFile ~/.ssh/known_hosts.render-vps
+    ServerAliveInterval 30
+    ServerAliveCountMax 3
+
+# SFTP ke liye:
+#   sftp rvps
+# Port forwarding ke liye:
+#   ssh -L 8080:localhost:8080 rvps

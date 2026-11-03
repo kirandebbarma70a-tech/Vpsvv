@@ -1,0 +1,22 @@
+# Render Blueprint — ek click me deploy
+# Dashboard -> New -> Blueprint -> apna repo select -> Apply
+services:
+  - type: web
+    name: ssh-vps
+    runtime: docker
+    dockerfilePath: ./Dockerfile
+    plan: free            # always-on chahiye to: starter
+    region: singapore     # India ke sabse kareeb
+    healthCheckPath: /healthz
+    autoDeploy: true
+    envVars:
+      - key: SSH_USER
+        value: root
+      - key: SSH_PASSWORD      # login password — dashboard me daalna
+        sync: false
+      - key: SSH_PUBKEY        # optional: "ssh-ed25519 AAAA..." (password se better)
+        sync: false
+      - key: WS_TOKEN          # tunnel/web-terminal ka secret
+        generateValue: true
+      - key: MAX_SESSIONS
+        value: "10"

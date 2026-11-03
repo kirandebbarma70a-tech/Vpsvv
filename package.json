@@ -1,0 +1,18 @@
+{
+  "name": "render-vps",
+  "version": "1.0.0",
+  "description": "A tiny VPS on Render: real sshd exposed through WebSocket, connect with any SSH client",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "keywords": ["render", "ssh", "websocket", "vps", "terminal"],
+  "license": "MIT",
+  "dependencies": {
+    "ssh2": "^1.17.0",
+    "ws": "^8.22.1"
+  }
+}

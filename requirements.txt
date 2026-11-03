@@ -1,0 +1,2 @@
+# pip install -r client/requirements.txt
+websocket-client>=1.7.0

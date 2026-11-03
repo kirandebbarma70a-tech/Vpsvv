@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>render-vps · SSH access</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@xterm/xterm@5.5.0/css/xterm.min.css" />
+<style>
+  :root{
+    --bg:#06090d; --panel:#0c1218; --panel2:#0f171f; --line:#1c2836;
+    --txt:#dbe6f0; --muted:#7d90a4; --acc:#3df58b; --acc2:#38bdf8; --warn:#fbbf24;
+    --mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;padding:0}
+  body{
+    background:
+      radial-gradient(1000px 600px at 85% -10%, rgba(56,189,248,.13), transparent 60%),
+      radial-gradient(900px 500px at 0% 0%, rgba(61,245,139,.10), transparent 55%),
+      var(--bg);
+    color:var(--txt);
+    font-family:var(--mono);
+    font-size:15px;
+    line-height:1.6;
+    min-height:100vh;
+    padding:28px 18px 60px;
+  }
+  .wrap{max-width:1040px;margin:0 auto}
+  header{display:flex;align-items:flex-start;justify-content:space-between;gap:20px;flex-wrap:wrap;margin-bottom:26px}
+  .brand{display:flex;align-items:center;gap:12px}
+  .logo{width:44px;height:44px;border-radius:12px;background:linear-gradient(140deg,#3df58b,#0ea5e9);display:grid;place-items:center;color:#04120a;font-weight:800;font-size:19px;box-shadow:0 8px 30px rgba(61,245,139,.25)}
+  h1{font-size:24px;margin:0;letter-spacing:-.3px}
+  .sub{color:var(--muted);font-size:13px;margin:2px 0 0}
+  .pill{display:inline-flex;align-items:center;gap:8px;border:1px solid var(--line);background:#0b1117;border-radius:999px;padding:7px 13px;font-size:12px;color:var(--muted)}
+  .dot{width:8px;height:8px;border-radius:50%;background:var(--acc);box-shadow:0 0 0 4px rgba(61,245,139,.13);animation:p 2s infinite}
+  @keyframes p{50%{opacity:.45}}
+
+  .grid{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+  @media (max-width:820px){.grid{grid-template-columns:1fr}}
+
+  .card{background:linear-gradient(180deg,var(--panel),var(--panel2));border:1px solid var(--line);border-radius:16px;padding:18px 18px 16px}
+  .card h2{font-size:14px;margin:0 0 4px;display:flex;align-items:center;gap:9px;letter-spacing:.2px}
+  .num{width:22px;height:22px;border-radius:7px;display:grid;place-items:center;background:rgba(61,245,139,.12);color:var(--acc);font-size:12px;border:1px solid rgba(61,245,139,.3)}
+  .card p{color:var(--muted);font-size:13px;margin:6px 0 12px}
+
+  .code{position:relative;background:#050a0e;border:1px solid #16202b;border-radius:11px;padding:11px 44px 11px 12px;overflow-x:auto}
+  .code pre{margin:0;font-size:12.5px;white-space:pre;color:#c9ffdd}
+  .code .cm{color:#5f7488}
+  .code .arg{color:#7dd3fc}
+  .copy{position:absolute;top:8px;right:8px;background:#111a23;border:1px solid #22303e;color:var(--muted);border-radius:8px;font-family:var(--mono);font-size:11px;padding:5px 9px;cursor:pointer}
+  .copy:hover{color:var(--acc);border-color:rgba(61,245,139,.4)}
+
+  .meta{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin:18px 0 6px}
+  @media (max-width:620px){.meta{grid-template-columns:1fr}}
+  .tile{background:#0a1016;border:1px solid var(--line);border-radius:12px;padding:11px 13px}
+  .tile .k{font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;color:#5f7488}
+  .tile .v{font-size:13px;color:var(--txt);word-break:break-all;margin-top:3px}
+  .v b{color:var(--acc);font-weight:600}
+
+  .term-card{margin-top:16px}
+  .row{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:12px}
+  input[type=password],input[type=text]{
+    background:#050a0e;border:1px solid #1d2a37;color:var(--txt);border-radius:10px;
+    padding:9px 12px;font-family:var(--mono);font-size:13px;min-width:240px;flex:1;outline:none
+  }
+  input:focus{border-color:rgba(61,245,139,.45)}
+  button.primary{background:linear-gradient(140deg,#3df58b,#22c55e);color:#04170c;border:0;border-radius:10px;padding:10px 18px;font-family:var(--mono);font-weight:700;font-size:13px;cursor:pointer}
+  button.primary:hover{filter:brightness(1.06)}
+  button.ghost{background:#111a23;color:var(--muted);border:1px solid #22303e;border-radius:10px;padding:9px 14px;font-family:var(--mono);font-size:12px;cursor:pointer}
+  button.ghost:hover{color:var(--txt)}
+  #term{height:400px;border-radius:12px;background:#04080b;border:1px solid #16202b;padding:8px;overflow:hidden}
+  #termHint{color:var(--muted);font-size:12.5px}
+
+  .note{margin-top:22px;border-left:2px solid var(--warn);background:rgba(251,191,36,.06);border-radius:0 12px 12px 0;padding:12px 16px;color:#e8d9a8;font-size:12.5px}
+  .note b{color:var(--warn)}
+  footer{margin-top:26px;color:#5f7488;font-size:11.5px;text-align:center}
+  a{color:var(--acc2)}
+  .ok{color:var(--acc)}
+  .bad{color:#f87171}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <div class="brand">
+      <div class="logo">&gt;_</div>
+      <div>
+        <h1>render-vps</h1>
+        <div class="sub">Render par chalne wala Linux box — kisi bhi SSH client se connect karo</div>
+      </div>
+    </div>
+    <div class="pill"><span class="dot"></span><span id="status">service live</span></div>
+  </header>
+
+  <div class="grid">
+    <section class="card">
+      <h2><span class="num">1</span> Tunnel start karo (apne laptop par)</h2>
+      <p>Render sirf HTTPS deta hai, raw SSH port nahi. Yeh script aapke machine par
+        <code>127.0.0.1:2222</code> khol deta hai jo WebSocket se Render tak jata hai.</p>
+      <div class="code">
+        <button class="copy" data-copy="node client&#47;tunnel.js wss&#58;&#47;&#47;{{HOST}}&#47;ws?token=YOUR_WS_TOKEN 2222">copy</button>
+        <pre><span class="cm">$</span> node client/tunnel.js \
+    <span class="arg">wss://{{HOST}}/ws?token=YOUR_WS_TOKEN</span> 2222</pre>
+      </div>
+      <p style="margin-top:10px">Node 22+ hai to kuch install nahi chahiye. Warna: <code>npm i ws</code>.
+        Python wala version bhi hai: <code>python client/tunnel.py</code>.</p>
+    </section>
+
+    <section class="card">
+      <h2><span class="num">2</span> SSH connect karo</h2>
+      <p>Tunnel chalne ke baad yeh normal SSH hai — OpenSSH, PuTTY, Termius, JuiceSSH, kuch bhi.</p>
+      <div class="code">
+        <button class="copy" data-copy="ssh -p 2222 {{USER}}@127.0.0.1">copy</button>
+        <pre><span class="cm">$</span> ssh -p 2222 {{USER}}@127.0.0.1
+<span class="cm"># password: SSH_PASSWORD (Render env me jo set kiya)</span></pre>
+      </div>
+      <p style="margin-top:10px">SFTP/SCP bhi chalega:
+        <code>sftp -P 2222 {{USER}}@127.0.0.1</code></p>
+    </section>
+  </div>
+
+  <div class="meta">
+    <div class="tile"><div class="k">Host</div><div class="v"><b>{{HOST}}</b></div></div>
+    <div class="tile"><div class="k">User</div><div class="v"><b>{{USER}}</b></div></div>
+    <div class="tile"><div class="k">Tunnel port</div><div class="v"><b>2222</b> (aapki machine par)</div></div>
+  </div>
+
+  <section class="card term-card">
+    <h2><span class="num">3</span> Browser se seedha shell (kuch install nahi)</h2>
+    <p>Neeche <code>WS_TOKEN</code> daalo aur Connect dabao — browser me hi full terminal khul jayega.</p>
+    <div class="row">
+      <input id="tok" type="password" placeholder="WS_TOKEN (Render env se)" autocomplete="off" />
+      <button class="primary" id="connectBtn">Connect</button>
+      <button class="ghost" id="clearBtn">Clear</button>
+      <span id="termHint">waiting…</span>
+    </div>
+    <div id="term"></div>
+  </section>
+
+  <div class="note">
+    <b>Yaad rakho:</b> Render ka filesystem <b>ephemeral</b> hai — restart / redeploy / free-tier sleep par
+    aapki files chali jayengi. Free instance 15 min idle ke baad so jata hai. Permanent data ke liye
+    paid instance + Render Disk chahiye, ya phir koi asli VPS (Oracle Cloud free, Hetzner, DigitalOcean) better hai.
+  </div>
+
+  <footer>render-vps · sshd inside Docker · WebSocket bridge · token-protected</footer>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@xterm/xterm@5.5.0/lib/xterm.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@xterm/addon-fit@0.10.0/lib/addon-fit.min.js"></script>
+<script>
+  /* ---------- copy buttons ---------- */
+  document.querySelectorAll('.copy').forEach(function (b) {
+    b.addEventListener('click', function () {
+      var text = b.getAttribute('data-copy');
+      (navigator.clipboard ? navigator.clipboard.writeText(text) : Promise.reject())
+        .then(function () { b.textContent = 'copied'; setTimeout(function(){ b.textContent = 'copy'; }, 1200); })
+        .catch(function () { b.textContent = 'manual'; });
+    });
+  });
+
+  /* ---------- token default from URL ---------- */
+  var urlToken = new URLSearchParams(location.search).get('token') || '';
+  var tokInput = document.getElementById('tok');
+  if (urlToken) tokInput.value = urlToken;
+
+  /* ---------- web terminal ---------- */
+  var term = null, fit = null, socket = null;
+  var hint = document.getElementById('termHint');
+  var hostLabel = '{{HOST}}';
+
+  function setHint(text, cls) {
+    hint.textContent = text;
+    hint.className = cls || '';
+  }
+
+  function bootTerm() {
+    if (!window.Terminal) { setHint('xterm.js load nahi hua (CDN blocked?)', 'bad'); return null; }
+    if (term) return term;
+
+    term = new window.Terminal({
+      fontFamily: 'ui-monospace, SFMono-Regular, Menlo, Consolas, monospace',
+      fontSize: 13,
+      cursorBlink: true,
+      convertEol: true,
+      theme: { background: '#04080b', foreground: '#d3e4f2', cursor: '#3df58b', selectionBackground: '#1d4d38' }
+    });
+    fit = new window.FitAddon.FitAddon();
+    term.loadAddon(fit);
+
+    term.open(document.getElementById('term'));
+    try { fit.fit(); } catch (e) {}
+    term.writeln('\x1b[38;5;114mrender-vps\x1b[0m · web terminal');
+    term.writeln('\x1b[90mconnecting…\x1b[0m');
+
+    window.addEventListener('resize', function () {
+      try { fit.fit(); if (socket && socket.readyState === 1) sendResize(); } catch (e) {}
+    });
+    return term;
+  }
+
+  function sendResize() {
+    if (!socket || socket.readyState !== 1) return;
+    socket.send(JSON.stringify({ t: 'r', c: term.cols, r: term.rows }));
+  }
+
+  function connect() {
+    bootTerm();
+    if (!term) return;
+    if (socket) { try { socket.close(); } catch (e) {} }
+
+    var token = tokInput.value.trim();
+    var proto = location.protocol === 'https:' ? 'wss:' : 'ws:';
+    var url = proto + '//' + location.host + '/term?token=' + encodeURIComponent(token);
+
+    setHint('connecting…');
+    socket = new WebSocket(url);
+
+    socket.onopen = function () {
+      setHint('connected to ' + hostLabel, 'ok');
+      try { fit.fit(); } catch (e) {}
+      sendResize();
+      term.focus();
+    };
+    socket.onmessage = function (ev) { term.write(ev.data); };
+    socket.onclose = function () { setHint('disconnected', 'bad'); };
+    socket.onerror = function () { setHint('connection failed — token check karo', 'bad'); };
+
+    term.onData(function (data) {
+      if (socket && socket.readyState === 1) socket.send(JSON.stringify({ t: 'i', d: data }));
+    });
+  }
+
+  document.getElementById('connectBtn').addEventListener('click', connect);
+  tokInput.addEventListener('keydown', function (e) { if (e.key === 'Enter') connect(); });
+  document.getElementById('clearBtn').addEventListener('click', function () {
+    if (socket) { try { socket.close(); } catch (e) {} }
+    if (term) term.reset();
+    setHint('cleared');
+  });
+
+  /* ---------- service info ---------- */
+  fetch('/api/info').then(function (r) { return r.json(); }).then(function (info) {
+    document.getElementById('status').textContent =
+      'live · user ' + info.user + ' · ' + info.activeSessions + ' active session(s)';
+  }).catch(function () {});
+</script>
+</body>
+</html>
